@@ -228,6 +228,9 @@
       </div>
       <div class="actions">
         <button onclick="runDemo()">Run demo analysis</button>
+        <button class="secondary" onclick="copySummary()">Copy summary</button>
+        <button class="secondary" onclick="exportActionsCsv()">Export actions CSV</button>
+        <button class="secondary" onclick="exportJournalCsv()">Export journal CSV</button>
       </div>
     </section>
 
@@ -694,6 +697,137 @@
 
         journalBody.appendChild(row);
       }
+    }
+
+    function copySummary() {
+      const actions = currentActions || [];
+      const journal = loadJournal();
+
+      const verdictCounts = {
+        allow: 0,
+        review: 0,
+        hold: 0,
+        block: 0
+      };
+
+      const lossCounts = {};
+      const managerStats = {};
+
+      for (const action of actions) {
+        if (verdictCounts[action.verdict] !== undefined) {
+          verdictCounts[action.verdict] += 1;
+        }
+
+        lossCounts[action.loss_type] = (lossCounts[action.loss_type] || 0) + 1;
+
+        const manager = action.manager_name || "Unknown";
+
+        if (!managerStats[manager]) {
+          managerStats[manager] = {
+            actions: 0,
+            severity: 0,
+            risky: 0
+          };
+        }
+
+        managerStats[manager].actions += 1;
+        managerStats[manager].severity += Number(action.severity || 0);
+
+        if (["review", "hold", "block"].includes(action.verdict)) {
+          managerStats[manager].risky += 1;
+        }
+      }
+
+      const lines = [
+        "Froddy Lead QA summary",
+        "",
+        "Dialogues: " + document.getElementById("total").textContent,
+        "Recommended actions: " + document.getElementById("actionsCount").textContent,
+        "",
+        "Verdicts:",
+        "- allow: " + verdictCounts.allow,
+        "- review: " + verdictCounts.review,
+        "- hold: " + verdictCounts.hold,
+        "- block: " + verdictCounts.block,
+        "",
+        "Loss types:",
+        ...Object.entries(lossCounts).map(([key, value]) => "- " + key + ": " + value),
+        "",
+        "Managers:",
+        ...Object.entries(managerStats).map(([manager, stats]) => (
+          "- " + manager + ": actions=" + stats.actions + ", severity=" + stats.severity + ", risky=" + stats.risky
+        )),
+        "",
+        "Human decisions in journal: " + journal.length
+      ];
+
+      navigator.clipboard.writeText(lines.join("\n"));
+      setStatus("Copied");
+    }
+
+    function exportActionsCsv() {
+      if (!currentActions || currentActions.length === 0) {
+        showError("No actions to export.");
+        return;
+      }
+
+      const rows = currentActions.map((action) => ({
+        dialogue_id: action.dialogue_id,
+        manager_name: action.manager_name,
+        classification: action.classification,
+        loss_type: action.loss_type,
+        severity: action.severity,
+        action_type: action.action_type,
+        verdict: action.verdict,
+        verdict_rule_id: action.verdict_rule_id,
+        evidence: action.evidence,
+        draft: action.draft
+      }));
+
+      downloadCsv("froddy_lead_qa_actions.csv", rows);
+    }
+
+    function exportJournalCsv() {
+      const journal = loadJournal();
+
+      if (!journal || journal.length === 0) {
+        showError("No journal decisions to export.");
+        return;
+      }
+
+      downloadCsv("froddy_lead_qa_decision_journal.csv", journal);
+    }
+
+    function downloadCsv(filename, rows) {
+      if (!rows || rows.length === 0) {
+        return;
+      }
+
+      const headers = Object.keys(rows[0]);
+      const csvRows = [
+        headers.join(","),
+        ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(","))
+      ];
+
+      const blob = new Blob([csvRows.join("\n")], {
+        type: "text/csv;charset=utf-8"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(value) {
+      const stringValue = String(value ?? "");
+      return '"' + stringValue.replaceAll('"', '""') + '"';
     }
 
     function cell(value) {
