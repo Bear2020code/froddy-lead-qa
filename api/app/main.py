@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.pipeline import analyze_csv_file
@@ -56,3 +57,9 @@ def analyze_csv(request: AnalyzeCsvRequest) -> dict:
         return analyze_csv_file(temp_path)
     finally:
         temp_path.unlink(missing_ok=True)
+
+
+@app.get("/cabinet", response_class=HTMLResponse)
+def cabinet() -> str:
+    cabinet_path = Path(__file__).resolve().parent / "static" / "cabinet.html"
+    return cabinet_path.read_text(encoding="utf-8")

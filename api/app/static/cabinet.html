@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Froddy Lead QA</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: #0f1115;
+      color: #f4f4f5;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    .sub {
+      margin: 0;
+      color: #a1a1aa;
+      font-size: 15px;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      background: #ff5a00;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .card {
+      background: #181b22;
+      border: 1px solid #2a2f3a;
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .label {
+      color: #a1a1aa;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .value {
+      font-size: 28px;
+      font-weight: 800;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #181b22;
+      border: 1px solid #2a2f3a;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid #2a2f3a;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      color: #a1a1aa;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #27272a;
+    }
+    .allow { color: #22c55e; }
+    .review { color: #facc15; }
+    .hold { color: #fb923c; }
+    .block { color: #ef4444; }
+    .draft {
+      color: #d4d4d8;
+      max-width: 420px;
+    }
+    .muted {
+      color: #a1a1aa;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Froddy Lead QA</h1>
+        <p class="sub">QA/control layer над Avito-переписками, менеджерами и AI-ботами.</p>
+      </div>
+      <button onclick="runDemo()">Run demo analysis</button>
+    </section>
+
+    <section class="cards">
+      <div class="card">
+        <div class="label">Dialogues</div>
+        <div class="value" id="total">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Recommended actions</div>
+        <div class="value" id="actionsCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Status</div>
+        <div class="value" id="status">Ready</div>
+      </div>
+    </section>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Dialogue</th>
+          <th>Manager</th>
+          <th>Problem</th>
+          <th>Action</th>
+          <th>Verdict</th>
+          <th>Draft</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr>
+          <td colspan="6" class="muted">Click “Run demo analysis”.</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    async function runDemo() {
+      const status = document.getElementById("status");
+      const tbody = document.getElementById("tbody");
+
+      status.textContent = "Loading";
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+
+      const response = await fetch("/v1/analyze-demo");
+      const data = await response.json();
+
+      document.getElementById("total").textContent = data.total_dialogues;
+      document.getElementById("actionsCount").textContent = data.recommended_actions_count;
+      status.textContent = "OK";
+
+      tbody.innerHTML = "";
+
+      for (const action of data.recommended_actions) {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${action.dialogue_id}</td>
+          <td>${action.manager_name}</td>
+          <td>
+            <div><b>${action.classification}</b></div>
+            <div class="muted">${action.loss_type}</div>
+            <div class="muted">${action.evidence}</div>
+          </td>
+          <td>${action.action_type}</td>
+          <td>
+            <span class="badge ${action.verdict}">${action.verdict}</span>
+            <div class="muted">${action.verdict_rule_id}</div>
+          </td>
+          <td class="draft">${action.draft}</td>
+        `;
+
+        tbody.appendChild(row);
+      }
+    }
+  </script>
+</body>
+</html>
