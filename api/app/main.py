@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
+from app.journal import append_decision, clear_decisions, list_decisions
 from app.pipeline import analyze_csv_file
 from app.settings import settings
 
@@ -20,6 +21,15 @@ def root() -> RedirectResponse:
 
 class AnalyzeCsvRequest(BaseModel):
     csv_text: str
+
+
+class DecisionJournalRequest(BaseModel):
+    dialogue_id: str
+    manager_name: str | None = None
+    original_verdict: str
+    human_decision: str
+    action_type: str
+    verdict_rule_id: str | None = None
 
 
 @app.get("/health")
@@ -83,3 +93,23 @@ def sample_csv() -> FileResponse:
         media_type="text/csv",
         filename="avito_repair_demo_30_dialogues.csv",
     )
+
+
+@app.get("/v1/decision-journal")
+def get_decision_journal() -> dict:
+    return {
+        "items": list_decisions(),
+    }
+
+
+@app.post("/v1/decision-journal")
+def post_decision_journal(request: DecisionJournalRequest) -> dict:
+    record = append_decision(request.model_dump())
+    return {
+        "item": record,
+    }
+
+
+@app.delete("/v1/decision-journal")
+def delete_decision_journal() -> dict:
+    return clear_decisions()
