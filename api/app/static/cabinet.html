@@ -201,6 +201,15 @@
       gap: 6px;
       min-width: 190px;
     }
+    .server-decision {
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: #a1a1aa;
+      min-width: 190px;
+    }
+    .server-decision .badge {
+      margin-left: 4px;
+    }
     .journal-head {
       display: flex;
       justify-content: space-between;
@@ -570,6 +579,7 @@
 
         const decisionCell = document.createElement("td");
         decisionCell.innerHTML = `
+          <div class="server-decision" id="server-decision-${escapeAttr(action.dialogue_id)}">Server: no decision yet</div>
           <div class="decision-buttons">
             <button class="small allow-btn" onclick="recordDecision('${escapeAttr(action.dialogue_id)}', 'allow')">Allow</button>
             <button class="small review-btn" onclick="recordDecision('${escapeAttr(action.dialogue_id)}', 'review')">Review</button>
@@ -581,6 +591,8 @@
 
         tbody.appendChild(row);
       }
+
+      updateActionDecisionStates();
     }
 
     function clearSummary() {
@@ -685,6 +697,41 @@
       }
     }
 
+    function latestDecisionForDialogue(dialogueId) {
+      return (currentJournal || []).find((item) => item.dialogue_id === dialogueId);
+    }
+
+    function updateActionDecisionStates() {
+      if (!currentActions || currentActions.length === 0) {
+        return;
+      }
+
+      for (const action of currentActions) {
+        const element = document.getElementById("server-decision-" + action.dialogue_id);
+
+        if (!element) {
+          continue;
+        }
+
+        const decision = latestDecisionForDialogue(action.dialogue_id);
+
+        if (!decision) {
+          element.innerHTML = "Server: no decision yet";
+          continue;
+        }
+
+        const time = decision.timestamp
+          ? new Date(decision.timestamp).toLocaleString()
+          : "";
+
+        element.innerHTML = `
+          Server:
+          <span class="badge ${escapeHtml(decision.human_decision)}">${escapeHtml(decision.human_decision)}</span>
+          <div class="muted">${escapeHtml(time)}</div>
+        `;
+      }
+    }
+
     async function recordDecision(dialogueId, decision) {
       clearError();
 
@@ -776,6 +823,7 @@
 
       if (!journal || journal.length === 0) {
         journalBody.innerHTML = '<tr><td colspan="6" class="muted">No human decisions yet.</td></tr>';
+        updateActionDecisionStates();
         return;
       }
 
@@ -798,6 +846,8 @@
 
         journalBody.appendChild(row);
       }
+
+      updateActionDecisionStates();
     }
 
     function copySummary() {
