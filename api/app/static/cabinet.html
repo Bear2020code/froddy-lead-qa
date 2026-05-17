@@ -12,7 +12,7 @@
       color: #f4f4f5;
     }
     .page {
-      max-width: 1180px;
+      max-width: 1280px;
       margin: 0 auto;
       padding: 32px;
     }
@@ -32,6 +32,12 @@
       color: #a1a1aa;
       font-size: 15px;
     }
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
     button {
       border: 0;
       border-radius: 12px;
@@ -40,6 +46,13 @@
       color: white;
       font-weight: 700;
       cursor: pointer;
+    }
+    button.secondary {
+      background: #27272a;
+      border: 1px solid #3f3f46;
+    }
+    input[type="file"] {
+      color: #d4d4d8;
     }
     .cards {
       display: grid;
@@ -61,6 +74,38 @@
     .value {
       font-size: 28px;
       font-weight: 800;
+    }
+    .upload {
+      background: #181b22;
+      border: 1px solid #2a2f3a;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 24px;
+    }
+    .upload-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .upload-title {
+      font-weight: 800;
+      font-size: 18px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      box-sizing: border-box;
+      resize: vertical;
+      background: #0f1115;
+      color: #f4f4f5;
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
     }
     table {
       width: 100%;
@@ -100,10 +145,15 @@
     .block { color: #ef4444; }
     .draft {
       color: #d4d4d8;
-      max-width: 420px;
+      max-width: 460px;
     }
     .muted {
       color: #a1a1aa;
+    }
+    .error {
+      color: #ef4444;
+      margin-top: 10px;
+      display: none;
     }
   </style>
 </head>
@@ -114,7 +164,9 @@
         <h1>Froddy Lead QA</h1>
         <p class="sub">QA/control layer над Avito-переписками, менеджерами и AI-ботами.</p>
       </div>
-      <button onclick="runDemo()">Run demo analysis</button>
+      <div class="actions">
+        <button onclick="runDemo()">Run demo analysis</button>
+      </div>
     </section>
 
     <section class="cards">
@@ -132,6 +184,22 @@
       </div>
     </section>
 
+    <section class="upload">
+      <div class="upload-head">
+        <div>
+          <div class="upload-title">Analyze your CSV</div>
+          <div class="muted">Paste CSV text or upload a .csv file, then run analysis.</div>
+        </div>
+        <div class="actions">
+          <input id="csvFile" type="file" accept=".csv,text/csv" onchange="loadCsvFile()" />
+          <button class="secondary" onclick="clearCsv()">Clear</button>
+          <button onclick="analyzeCsv()">Analyze CSV</button>
+        </div>
+      </div>
+      <textarea id="csvText" placeholder="Paste CSV here..."></textarea>
+      <div id="error" class="error"></div>
+    </section>
+
     <table>
       <thead>
         <tr>
@@ -145,50 +213,154 @@
       </thead>
       <tbody id="tbody">
         <tr>
-          <td colspan="6" class="muted">Click “Run demo analysis”.</td>
+          <td colspan="6" class="muted">Click “Run demo analysis” or analyze your CSV.</td>
         </tr>
       </tbody>
     </table>
   </main>
 
   <script>
+    function setStatus(value) {
+      document.getElementById("status").textContent = value;
+    }
+
+    function showError(message) {
+      const error = document.getElementById("error");
+      error.style.display = "block";
+      error.textContent = message;
+    }
+
+    function clearError() {
+      const error = document.getElementById("error");
+      error.style.display = "none";
+      error.textContent = "";
+    }
+
+    function clearCsv() {
+      document.getElementById("csvText").value = "";
+      document.getElementById("csvFile").value = "";
+      clearError();
+    }
+
+    async function loadCsvFile() {
+      clearError();
+
+      const input = document.getElementById("csvFile");
+      const file = input.files && input.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      const text = await file.text();
+      document.getElementById("csvText").value = text;
+    }
+
     async function runDemo() {
-      const status = document.getElementById("status");
-      const tbody = document.getElementById("tbody");
+      clearError();
+      setLoading();
 
-      status.textContent = "Loading";
-      tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+      try {
+        const response = await fetch("/v1/analyze-demo");
 
-      const response = await fetch("/v1/analyze-demo");
-      const data = await response.json();
+        if (!response.ok) {
+          throw new Error("Demo analysis failed: " + response.status);
+        }
 
+        const data = await response.json();
+        renderResult(data);
+      } catch (error) {
+        setStatus("Error");
+        showError(error.message);
+      }
+    }
+
+    async function analyzeCsv() {
+      clearError();
+
+      const csvText = document.getElementById("csvText").value.trim();
+
+      if (!csvText) {
+        showError("CSV text is empty.");
+        return;
+      }
+
+      setLoading();
+
+      try {
+        const response = await fetch("/v1/analyze-csv", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            csv_text: csvText
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error("CSV analysis failed: " + response.status + " " + errorText);
+        }
+
+        const data = await response.json();
+        renderResult(data);
+      } catch (error) {
+        setStatus("Error");
+        showError(error.message);
+      }
+    }
+
+    function setLoading() {
+      setStatus("Loading");
+
+      document.getElementById("tbody").innerHTML =
+        '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+    }
+
+    function renderResult(data) {
       document.getElementById("total").textContent = data.total_dialogues;
       document.getElementById("actionsCount").textContent = data.recommended_actions_count;
-      status.textContent = "OK";
+      setStatus("OK");
 
+      const tbody = document.getElementById("tbody");
       tbody.innerHTML = "";
+
+      if (!data.recommended_actions || data.recommended_actions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="muted">No recommended actions.</td></tr>';
+        return;
+      }
 
       for (const action of data.recommended_actions) {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-          <td>${action.dialogue_id}</td>
-          <td>${action.manager_name}</td>
+          <td>${escapeHtml(action.dialogue_id)}</td>
+          <td>${escapeHtml(action.manager_name)}</td>
           <td>
-            <div><b>${action.classification}</b></div>
-            <div class="muted">${action.loss_type}</div>
-            <div class="muted">${action.evidence}</div>
+            <div><b>${escapeHtml(action.classification)}</b></div>
+            <div class="muted">${escapeHtml(action.loss_type)}</div>
+            <div class="muted">${escapeHtml(action.evidence)}</div>
           </td>
-          <td>${action.action_type}</td>
+          <td>${escapeHtml(action.action_type)}</td>
           <td>
-            <span class="badge ${action.verdict}">${action.verdict}</span>
-            <div class="muted">${action.verdict_rule_id}</div>
+            <span class="badge ${escapeHtml(action.verdict)}">${escapeHtml(action.verdict)}</span>
+            <div class="muted">${escapeHtml(action.verdict_rule_id)}</div>
           </td>
-          <td class="draft">${action.draft}</td>
+          <td class="draft">${escapeHtml(action.draft)}</td>
         `;
 
         tbody.appendChild(row);
       }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
   </script>
 </body>
