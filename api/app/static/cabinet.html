@@ -183,6 +183,40 @@
       align-items: center;
       gap: 16px;
     }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-grid.two {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .summary-panel {
+      background: #181b22;
+      border: 1px solid #2a2f3a;
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .summary-panel h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+    .mini-table {
+      width: 100%;
+      margin: 0;
+      border: 0;
+      background: transparent;
+    }
+    .mini-table th,
+    .mini-table td {
+      padding: 8px 0;
+      border-bottom: 1px solid #2a2f3a;
+      font-size: 13px;
+    }
+    .mini-table tr:last-child td {
+      border-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -226,6 +260,61 @@
       </div>
       <textarea id="csvText" placeholder="Paste CSV here..."></textarea>
       <div id="error" class="error"></div>
+    </section>
+
+    <h2>Summary dashboard</h2>
+
+    <section class="summary-grid">
+      <div class="card">
+        <div class="label">Allow</div>
+        <div class="value allow" id="allowCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Review</div>
+        <div class="value review" id="reviewCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Hold</div>
+        <div class="value hold" id="holdCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Block</div>
+        <div class="value block" id="blockCount">—</div>
+      </div>
+    </section>
+
+    <section class="summary-grid two">
+      <div class="summary-panel">
+        <h3>Loss types</h3>
+        <table class="mini-table">
+          <thead>
+            <tr>
+              <th>Loss type</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody id="lossBody">
+            <tr><td colspan="2" class="muted">Run analysis to see loss types.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="summary-panel">
+        <h3>Managers</h3>
+        <table class="mini-table">
+          <thead>
+            <tr>
+              <th>Manager</th>
+              <th>Actions</th>
+              <th>Severity</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody id="managerBody">
+            <tr><td colspan="4" class="muted">Run analysis to see manager QA.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <h2>Recommended actions</h2>
@@ -277,6 +366,7 @@
     let currentActions = [];
 
     renderJournal();
+    clearSummary();
 
     function setStatus(value) {
       document.getElementById("status").textContent = value;
@@ -371,6 +461,7 @@
 
     function setLoading() {
       setStatus("Loading");
+      clearSummary();
 
       document.getElementById("tbody").innerHTML =
         '<tr><td colspan="7" class="muted">Loading...</td></tr>';
@@ -382,6 +473,7 @@
       document.getElementById("total").textContent = data.total_dialogues;
       document.getElementById("actionsCount").textContent = data.recommended_actions_count;
       setStatus("OK");
+      renderSummary(data);
 
       const tbody = document.getElementById("tbody");
       tbody.innerHTML = "";
@@ -430,6 +522,108 @@
         row.appendChild(decisionCell);
 
         tbody.appendChild(row);
+      }
+    }
+
+    function clearSummary() {
+      document.getElementById("allowCount").textContent = "—";
+      document.getElementById("reviewCount").textContent = "—";
+      document.getElementById("holdCount").textContent = "—";
+      document.getElementById("blockCount").textContent = "—";
+
+      document.getElementById("lossBody").innerHTML =
+        '<tr><td colspan="2" class="muted">Run analysis to see loss types.</td></tr>';
+
+      document.getElementById("managerBody").innerHTML =
+        '<tr><td colspan="4" class="muted">Run analysis to see manager QA.</td></tr>';
+    }
+
+    function renderSummary(data) {
+      const actions = data.recommended_actions || [];
+
+      const verdictCounts = {
+        allow: 0,
+        review: 0,
+        hold: 0,
+        block: 0
+      };
+
+      const lossCounts = {};
+      const managerStats = {};
+
+      for (const action of actions) {
+        if (verdictCounts[action.verdict] !== undefined) {
+          verdictCounts[action.verdict] += 1;
+        }
+
+        lossCounts[action.loss_type] = (lossCounts[action.loss_type] || 0) + 1;
+
+        const manager = action.manager_name || "Unknown";
+
+        if (!managerStats[manager]) {
+          managerStats[manager] = {
+            actions: 0,
+            severity: 0,
+            risky: 0
+          };
+        }
+
+        managerStats[manager].actions += 1;
+        managerStats[manager].severity += Number(action.severity || 0);
+
+        if (["review", "hold", "block"].includes(action.verdict)) {
+          managerStats[manager].risky += 1;
+        }
+      }
+
+      document.getElementById("allowCount").textContent = verdictCounts.allow;
+      document.getElementById("reviewCount").textContent = verdictCounts.review;
+      document.getElementById("holdCount").textContent = verdictCounts.hold;
+      document.getElementById("blockCount").textContent = verdictCounts.block;
+
+      renderLossSummary(lossCounts);
+      renderManagerSummary(managerStats);
+    }
+
+    function renderLossSummary(lossCounts) {
+      const lossBody = document.getElementById("lossBody");
+      const rows = Object.entries(lossCounts)
+        .sort((a, b) => b[1] - a[1]);
+
+      lossBody.innerHTML = "";
+
+      if (rows.length === 0) {
+        lossBody.innerHTML = '<tr><td colspan="2" class="muted">No losses found.</td></tr>';
+        return;
+      }
+
+      for (const [lossType, count] of rows) {
+        const row = document.createElement("tr");
+        row.appendChild(cell(lossType));
+        row.appendChild(cell(count));
+        lossBody.appendChild(row);
+      }
+    }
+
+    function renderManagerSummary(managerStats) {
+      const managerBody = document.getElementById("managerBody");
+      const rows = Object.entries(managerStats)
+        .sort((a, b) => b[1].severity - a[1].severity);
+
+      managerBody.innerHTML = "";
+
+      if (rows.length === 0) {
+        managerBody.innerHTML = '<tr><td colspan="4" class="muted">No manager risks found.</td></tr>';
+        return;
+      }
+
+      for (const [manager, stats] of rows) {
+        const row = document.createElement("tr");
+        row.appendChild(cell(manager));
+        row.appendChild(cell(stats.actions));
+        row.appendChild(cell(stats.severity));
+        row.appendChild(cell(stats.risky));
+        managerBody.appendChild(row);
       }
     }
 
