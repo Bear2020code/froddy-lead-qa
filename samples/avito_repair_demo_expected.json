@@ -1,0 +1,62 @@
+{
+  "d_001": {
+    "classification": "hot_lead",
+    "loss_type": "no_loss",
+    "expected_verdict": null,
+    "why": "Good handling: fast reply, clarifying path, next step."
+  },
+  "d_002": {
+    "classification": "lost",
+    "loss_type": "brutal_loss",
+    "expected_verdict": "allow",
+    "why": "Buyer asked a concrete price question, seller replied too late and gave no useful answer."
+  },
+  "d_003": {
+    "classification": "lost",
+    "loss_type": "soft_loss",
+    "expected_verdict": "review",
+    "why": "Seller gave a generic answer and did not answer the second concrete price question."
+  },
+  "d_004": {
+    "classification": "warm_lead",
+    "loss_type": "no_next_step",
+    "expected_verdict": "review",
+    "why": "Buyer showed intent, but seller ended without a clear next step."
+  },
+  "d_005": {
+    "classification": "needs_followup",
+    "loss_type": "cold_trail",
+    "expected_verdict": "allow",
+    "why": "Seller replied with useful information, but buyer did not respond."
+  },
+  "d_006": {
+    "classification": "conflict",
+    "loss_type": "no_loss",
+    "expected_verdict": "hold",
+    "why": "Buyer is irritated; automatic follow-up may worsen the situation."
+  },
+  "d_007": {
+    "classification": "spam",
+    "loss_type": "no_loss",
+    "expected_verdict": null,
+    "why": "Spam message, no action should be created."
+  },
+  "d_008": {
+    "classification": "hot_lead",
+    "loss_type": "no_loss",
+    "expected_verdict": null,
+    "why": "Good handling with price range and next step."
+  },
+  "d_009": {
+    "classification": "needs_followup",
+    "loss_type": "cold_trail",
+    "expected_verdict": "allow",
+    "why": "Seller gave estimate but did not offer a concrete slot or next action."
+  },
+  "d_010": {
+    "classification": "negotiation",
+    "loss_type": "no_loss",
+    "expected_verdict": "block",
+    "why": "Seller promised a discount and start date without approval/regulation."
+  }
+}
