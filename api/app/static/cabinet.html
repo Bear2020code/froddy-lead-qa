@@ -417,10 +417,18 @@
       document.getElementById("status").textContent = value;
     }
 
+    let statusFlashTimer = null;
+
     function flashStatus(value, nextValue = "Ready", delayMs = 1500) {
+      if (statusFlashTimer) {
+        window.clearTimeout(statusFlashTimer);
+      }
+
       setStatus(value);
-      window.setTimeout(() => {
+
+      statusFlashTimer = window.setTimeout(() => {
         setStatus(nextValue);
+        statusFlashTimer = null;
       }, delayMs);
     }
 
@@ -823,7 +831,7 @@
 
         currentJournal = [];
         renderJournalRows(currentJournal);
-        setStatus("Journal cleared");
+        flashStatus("Journal cleared", "Ready", 1500);
       } catch (error) {
         setStatus("Error");
         showError(error.message);
