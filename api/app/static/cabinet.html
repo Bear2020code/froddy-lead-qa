@@ -398,8 +398,9 @@
   <script>
     const JOURNAL_KEY = "froddyLeadQaDecisionJournalV1";
     let currentActions = [];
+    let currentJournal = [];
 
-    renderJournal();
+    refreshJournal();
     clearSummary();
 
     function setStatus(value) {
@@ -684,7 +685,9 @@
       }
     }
 
-    function recordDecision(dialogueId, decision) {
+    async function recordDecision(dialogueId, decision) {
+      clearError();
+
       const action = currentActions.find((item) => item.dialogue_id === dialogueId);
 
       if (!action) {
@@ -692,42 +695,86 @@
         return;
       }
 
-      const journal = loadJournal();
-
-      journal.unshift({
-        timestamp: new Date().toISOString(),
+      const payload = {
         dialogue_id: action.dialogue_id,
         manager_name: action.manager_name,
         original_verdict: action.verdict,
         human_decision: decision,
         action_type: action.action_type,
         verdict_rule_id: action.verdict_rule_id
-      });
+      };
 
-      localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal.slice(0, 100)));
-      renderJournal();
-    }
-
-    function loadJournal() {
       try {
-        return JSON.parse(localStorage.getItem(JOURNAL_KEY) || "[]");
-      } catch {
-        return [];
+        const response = await fetch("/v1/decision-journal", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error("Decision save failed: " + response.status + " " + errorText);
+        }
+
+        await refreshJournal();
+        setStatus("Decision saved");
+      } catch (error) {
+        setStatus("Error");
+        showError(error.message);
       }
     }
 
-    function clearJournal() {
-      localStorage.removeItem(JOURNAL_KEY);
-      renderJournal();
+    function loadJournal() {
+      return currentJournal || [];
     }
 
-    function renderJournal() {
+    async function clearJournal() {
+      clearError();
+
+      try {
+        const response = await fetch("/v1/decision-journal", {
+          method: "DELETE"
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error("Journal clear failed: " + response.status + " " + errorText);
+        }
+
+        currentJournal = [];
+        renderJournalRows(currentJournal);
+        setStatus("Journal cleared");
+      } catch (error) {
+        setStatus("Error");
+        showError(error.message);
+      }
+    }
+
+    async function refreshJournal() {
+      try {
+        const response = await fetch("/v1/decision-journal");
+
+        if (!response.ok) {
+          throw new Error("Journal load failed: " + response.status);
+        }
+
+        const data = await response.json();
+        currentJournal = data.items || [];
+        renderJournalRows(currentJournal);
+      } catch (error) {
+        currentJournal = [];
+        renderJournalRows(currentJournal);
+      }
+    }
+
+    function renderJournalRows(journal) {
       const journalBody = document.getElementById("journalBody");
-      const journal = loadJournal();
 
       journalBody.innerHTML = "";
 
-      if (journal.length === 0) {
+      if (!journal || journal.length === 0) {
         journalBody.innerHTML = '<tr><td colspan="6" class="muted">No human decisions yet.</td></tr>';
         return;
       }
