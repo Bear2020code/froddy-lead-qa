@@ -6,6 +6,7 @@ from typing import Any
 from app.actions.mock_followup import generate_followup
 from app.analysis.mock_detector import classify_dialogue, detect_loss_type
 from app.ingest.csv_parser import Dialogue, parse_csv
+from app.privacy import mask_pii
 from app.scoring.quality import calculate_quality_score
 from app.verdict import VerdictEngine
 
@@ -47,11 +48,11 @@ def analyze_dialogues(dialogues: list[Dialogue]) -> dict[str, Any]:
             "classification_rationale": classification_result["rationale"],
             "loss_type": loss_result["loss_type"],
             "severity": loss_result["severity"],
-            "evidence": loss_result["evidence"],
+            "evidence": mask_pii(loss_result["evidence"]),
             "quality_score": quality,
-            "seller_text": seller_text,
+            "seller_text": mask_pii(seller_text),
             "action_type": followup["action_type"],
-            "draft": followup["draft"],
+            "draft": mask_pii(followup["draft"]),
             "intent": followup.get("intent"),
             "tone": followup.get("tone"),
         }
