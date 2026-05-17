@@ -36,6 +36,30 @@
       color: #a1a1aa;
       font-size: 15px;
     }
+    .privacy-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #2a2f3a;
+      background: #181b22;
+      color: #d4d4d8;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .privacy-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+    }
     .actions {
       display: flex;
       gap: 10px;
@@ -225,6 +249,11 @@
       <div>
         <h1>Froddy Lead QA</h1>
         <p class="sub">QA/control layer над Avito-переписками, менеджерами и AI-ботами.</p>
+        <div class="privacy-badges">
+          <span class="privacy-badge"><span class="privacy-dot"></span>PII masked before display/export</span>
+          <span class="privacy-badge"><span class="privacy-dot"></span>Phone / email / URL / car plate redaction</span>
+          <span class="privacy-badge"><span class="privacy-dot"></span>Local decision journal</span>
+        </div>
       </div>
       <div class="actions">
         <button onclick="runDemo()">Run demo analysis</button>
