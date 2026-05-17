@@ -4,13 +4,18 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 from app.pipeline import analyze_csv_file
 from app.settings import settings
 
 app = FastAPI(title="Froddy Lead QA API", version="0.1.0")
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/cabinet")
 
 
 class AnalyzeCsvRequest(BaseModel):
@@ -63,3 +68,18 @@ def analyze_csv(request: AnalyzeCsvRequest) -> dict:
 def cabinet() -> str:
     cabinet_path = Path(__file__).resolve().parent / "static" / "cabinet.html"
     return cabinet_path.read_text(encoding="utf-8")
+
+
+@app.get("/sample-csv")
+def sample_csv() -> FileResponse:
+    project_root = Path(__file__).resolve().parents[2]
+    csv_path = project_root / "samples" / "avito_repair_demo_30_dialogues.csv"
+
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail="Sample CSV file not found.")
+
+    return FileResponse(
+        path=csv_path,
+        media_type="text/csv",
+        filename="avito_repair_demo_30_dialogues.csv",
+    )

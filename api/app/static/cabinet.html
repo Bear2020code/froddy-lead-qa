@@ -257,6 +257,8 @@
         </div>
         <div class="actions">
           <input id="csvFile" type="file" accept=".csv,text/csv" onchange="loadCsvFile()" />
+          <button class="secondary" onclick="loadSampleCsv()">Load sample CSV</button>
+          <button class="secondary" onclick="downloadSampleCsv()">Download sample CSV</button>
           <button class="secondary" onclick="clearCsv()">Clear</button>
           <button onclick="analyzeCsv()">Analyze CSV</button>
         </div>
@@ -405,6 +407,29 @@
 
       const text = await file.text();
       document.getElementById("csvText").value = text;
+    }
+
+    async function loadSampleCsv() {
+      clearError();
+
+      try {
+        const response = await fetch("/sample-csv");
+
+        if (!response.ok) {
+          throw new Error("Sample CSV loading failed: " + response.status);
+        }
+
+        const text = await response.text();
+        document.getElementById("csvText").value = text;
+        setStatus("Sample loaded");
+      } catch (error) {
+        setStatus("Error");
+        showError(error.message);
+      }
+    }
+
+    function downloadSampleCsv() {
+      window.location.href = "/sample-csv";
     }
 
     async function runDemo() {
