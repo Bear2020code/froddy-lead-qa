@@ -12,7 +12,7 @@
       color: #f4f4f5;
     }
     .page {
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 32px;
     }
@@ -27,6 +27,10 @@
       margin: 0 0 8px;
       font-size: 32px;
     }
+    h2 {
+      margin: 32px 0 14px;
+      font-size: 22px;
+    }
     .sub {
       margin: 0;
       color: #a1a1aa;
@@ -34,7 +38,7 @@
     }
     .actions {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -51,6 +55,17 @@
       background: #27272a;
       border: 1px solid #3f3f46;
     }
+    button.small {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+    }
+    button.small.allow-btn { color: #22c55e; }
+    button.small.review-btn { color: #facc15; }
+    button.small.hold-btn { color: #fb923c; }
+    button.small.block-btn { color: #ef4444; }
     input[type="file"] {
       color: #d4d4d8;
     }
@@ -95,7 +110,7 @@
     }
     textarea {
       width: 100%;
-      min-height: 160px;
+      min-height: 150px;
       box-sizing: border-box;
       resize: vertical;
       background: #0f1115;
@@ -114,6 +129,7 @@
       border: 1px solid #2a2f3a;
       border-radius: 16px;
       overflow: hidden;
+      margin-bottom: 24px;
     }
     th, td {
       text-align: left;
@@ -145,7 +161,7 @@
     .block { color: #ef4444; }
     .draft {
       color: #d4d4d8;
-      max-width: 460px;
+      max-width: 420px;
     }
     .muted {
       color: #a1a1aa;
@@ -154,6 +170,18 @@
       color: #ef4444;
       margin-top: 10px;
       display: none;
+    }
+    .decision-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(80px, 1fr));
+      gap: 6px;
+      min-width: 190px;
+    }
+    .journal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
     }
   </style>
 </head>
@@ -200,6 +228,7 @@
       <div id="error" class="error"></div>
     </section>
 
+    <h2>Recommended actions</h2>
     <table>
       <thead>
         <tr>
@@ -209,17 +238,46 @@
           <th>Action</th>
           <th>Verdict</th>
           <th>Draft</th>
+          <th>Human decision</th>
         </tr>
       </thead>
       <tbody id="tbody">
         <tr>
-          <td colspan="6" class="muted">Click “Run demo analysis” or analyze your CSV.</td>
+          <td colspan="7" class="muted">Click “Run demo analysis” or analyze your CSV.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <section class="journal-head">
+      <h2>Decision journal</h2>
+      <button class="secondary" onclick="clearJournal()">Clear journal</button>
+    </section>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Dialogue</th>
+          <th>Manager</th>
+          <th>Original verdict</th>
+          <th>Human decision</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="journalBody">
+        <tr>
+          <td colspan="6" class="muted">No human decisions yet.</td>
         </tr>
       </tbody>
     </table>
   </main>
 
   <script>
+    const JOURNAL_KEY = "froddyLeadQaDecisionJournalV1";
+    let currentActions = [];
+
+    renderJournal();
+
     function setStatus(value) {
       document.getElementById("status").textContent = value;
     }
@@ -315,10 +373,12 @@
       setStatus("Loading");
 
       document.getElementById("tbody").innerHTML =
-        '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+        '<tr><td colspan="7" class="muted">Loading...</td></tr>';
     }
 
     function renderResult(data) {
+      currentActions = data.recommended_actions || [];
+
       document.getElementById("total").textContent = data.total_dialogues;
       document.getElementById("actionsCount").textContent = data.recommended_actions_count;
       setStatus("OK");
@@ -326,32 +386,126 @@
       const tbody = document.getElementById("tbody");
       tbody.innerHTML = "";
 
-      if (!data.recommended_actions || data.recommended_actions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="muted">No recommended actions.</td></tr>';
+      if (currentActions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">No recommended actions.</td></tr>';
         return;
       }
 
-      for (const action of data.recommended_actions) {
+      for (const action of currentActions) {
         const row = document.createElement("tr");
 
-        row.innerHTML = `
-          <td>${escapeHtml(action.dialogue_id)}</td>
-          <td>${escapeHtml(action.manager_name)}</td>
-          <td>
-            <div><b>${escapeHtml(action.classification)}</b></div>
-            <div class="muted">${escapeHtml(action.loss_type)}</div>
-            <div class="muted">${escapeHtml(action.evidence)}</div>
-          </td>
-          <td>${escapeHtml(action.action_type)}</td>
-          <td>
-            <span class="badge ${escapeHtml(action.verdict)}">${escapeHtml(action.verdict)}</span>
-            <div class="muted">${escapeHtml(action.verdict_rule_id)}</div>
-          </td>
-          <td class="draft">${escapeHtml(action.draft)}</td>
+        row.appendChild(cell(action.dialogue_id));
+        row.appendChild(cell(action.manager_name));
+
+        const problemCell = document.createElement("td");
+        problemCell.innerHTML = `
+          <div><b>${escapeHtml(action.classification)}</b></div>
+          <div class="muted">${escapeHtml(action.loss_type)}</div>
+          <div class="muted">${escapeHtml(action.evidence)}</div>
         `;
+        row.appendChild(problemCell);
+
+        row.appendChild(cell(action.action_type));
+
+        const verdictCell = document.createElement("td");
+        verdictCell.innerHTML = `
+          <span class="badge ${escapeHtml(action.verdict)}">${escapeHtml(action.verdict)}</span>
+          <div class="muted">${escapeHtml(action.verdict_rule_id)}</div>
+        `;
+        row.appendChild(verdictCell);
+
+        const draftCell = cell(action.draft);
+        draftCell.className = "draft";
+        row.appendChild(draftCell);
+
+        const decisionCell = document.createElement("td");
+        decisionCell.innerHTML = `
+          <div class="decision-buttons">
+            <button class="small allow-btn" onclick="recordDecision('${escapeAttr(action.dialogue_id)}', 'allow')">Allow</button>
+            <button class="small review-btn" onclick="recordDecision('${escapeAttr(action.dialogue_id)}', 'review')">Review</button>
+            <button class="small hold-btn" onclick="recordDecision('${escapeAttr(action.dialogue_id)}', 'hold')">Hold</button>
+            <button class="small block-btn" onclick="recordDecision('${escapeAttr(action.dialogue_id)}', 'block')">Block</button>
+          </div>
+        `;
+        row.appendChild(decisionCell);
 
         tbody.appendChild(row);
       }
+    }
+
+    function recordDecision(dialogueId, decision) {
+      const action = currentActions.find((item) => item.dialogue_id === dialogueId);
+
+      if (!action) {
+        showError("Action not found for dialogue " + dialogueId);
+        return;
+      }
+
+      const journal = loadJournal();
+
+      journal.unshift({
+        timestamp: new Date().toISOString(),
+        dialogue_id: action.dialogue_id,
+        manager_name: action.manager_name,
+        original_verdict: action.verdict,
+        human_decision: decision,
+        action_type: action.action_type,
+        verdict_rule_id: action.verdict_rule_id
+      });
+
+      localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal.slice(0, 100)));
+      renderJournal();
+    }
+
+    function loadJournal() {
+      try {
+        return JSON.parse(localStorage.getItem(JOURNAL_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function clearJournal() {
+      localStorage.removeItem(JOURNAL_KEY);
+      renderJournal();
+    }
+
+    function renderJournal() {
+      const journalBody = document.getElementById("journalBody");
+      const journal = loadJournal();
+
+      journalBody.innerHTML = "";
+
+      if (journal.length === 0) {
+        journalBody.innerHTML = '<tr><td colspan="6" class="muted">No human decisions yet.</td></tr>';
+        return;
+      }
+
+      for (const item of journal) {
+        const row = document.createElement("tr");
+
+        row.appendChild(cell(new Date(item.timestamp).toLocaleString()));
+        row.appendChild(cell(item.dialogue_id));
+        row.appendChild(cell(item.manager_name));
+
+        const originalCell = document.createElement("td");
+        originalCell.innerHTML = `<span class="badge ${escapeHtml(item.original_verdict)}">${escapeHtml(item.original_verdict)}</span>`;
+        row.appendChild(originalCell);
+
+        const decisionCell = document.createElement("td");
+        decisionCell.innerHTML = `<span class="badge ${escapeHtml(item.human_decision)}">${escapeHtml(item.human_decision)}</span>`;
+        row.appendChild(decisionCell);
+
+        row.appendChild(cell(item.action_type));
+
+        journalBody.appendChild(row);
+      }
+    }
+
+    function cell(value) {
+      const td = document.createElement("td");
+      td.textContent = value ?? "";
+      return td;
     }
 
     function escapeHtml(value) {
@@ -361,6 +515,13 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return String(value ?? "")
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll('"', "&quot;");
     }
   </script>
 </body>
