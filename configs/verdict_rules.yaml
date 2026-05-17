@@ -1,0 +1,30 @@
+version: v0.1
+
+decisions:
+  - allow
+  - review
+  - hold
+  - block
+
+priority:
+  allow: 0
+  review: 1
+  hold: 2
+  block: 3
+
+rules:
+  unsafe_seller_promise:
+    decision: block
+    reason: "Dialogue contains an unsafe seller promise: discount, price concession or unapproved deadline."
+
+  conflict_requires_hold:
+    decision: hold
+    reason: "Conflict context: automatic follow-up may worsen the situation."
+
+  incomplete_context_requires_review:
+    decision: review
+    reason: "Follow-up needs human check because context is incomplete."
+
+  standard_follow_up_allowed:
+    decision: allow
+    reason: "Standard soft follow-up is safe."
