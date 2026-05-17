@@ -266,7 +266,7 @@
       </div>
       <div class="actions">
         <button onclick="runDemo()">Run demo analysis</button>
-        <button class="secondary" onclick="resetDemoData()">Reset demo data</button>
+        <button class="secondary" onclick="resetDemoData()">Clear journal</button>
         <button class="secondary" onclick="copySummary()">Copy summary</button>
         <button class="secondary" onclick="exportActionsCsv()">Export actions CSV</button>
         <button class="secondary" onclick="exportJournalCsv()">Export journal CSV</button>
@@ -417,6 +417,13 @@
       document.getElementById("status").textContent = value;
     }
 
+    function flashStatus(value, nextValue = "Ready", delayMs = 1500) {
+      setStatus(value);
+      window.setTimeout(() => {
+        setStatus(nextValue);
+      }, delayMs);
+    }
+
     function showError(message) {
       const error = document.getElementById("error");
       error.style.display = "block";
@@ -488,7 +495,7 @@
         currentJournal = [];
         renderJournalRows(currentJournal);
         updateActionDecisionStates();
-        setStatus("Reset");
+        flashStatus("Journal cleared");
       } catch (error) {
         setStatus("Error");
         showError(error.message);
