@@ -8,13 +8,13 @@ Froddy Lead QA не является Avito-ботом и не отправляе
 ## Demo
 
 Cabinet:
-https://froddy-lead-qa-froddy.amvera.io/cabinet
+https://froddy-lead-qa-clean-froddy.amvera.io/cabinet
 
 Health:
-https://froddy-lead-qa-froddy.amvera.io/health
+https://froddy-lead-qa-clean-froddy.amvera.io/health
 
 Demo analysis:
-https://froddy-lead-qa-froddy.amvera.io/v1/analyze-demo
+https://froddy-lead-qa-clean-froddy.amvera.io/v1/analyze-demo
 
 ## Current scope
 

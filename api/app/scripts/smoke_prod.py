@@ -6,7 +6,7 @@ import urllib.request
 from urllib.error import HTTPError, URLError
 
 
-DEFAULT_BASE_URL = "https://froddy-lead-qa-froddy.amvera.io"
+DEFAULT_BASE_URL = "https://froddy-lead-qa-clean-froddy.amvera.io"
 
 
 def request_json(url: str, method: str = "GET", payload: dict | None = None) -> dict:

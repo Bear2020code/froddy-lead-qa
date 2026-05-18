@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 
 
-DEFAULT_BASE_URL = "https://froddy-lead-qa-froddy.amvera.io"
+DEFAULT_BASE_URL = "https://froddy-lead-qa-clean-froddy.amvera.io"
 
 
 def fetch_text(url: str) -> str:

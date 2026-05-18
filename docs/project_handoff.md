@@ -5,10 +5,10 @@
 Project is deployed and working.
 
 Prod cabinet:
-https://froddy-lead-qa-froddy.amvera.io/cabinet
+https://froddy-lead-qa-clean-froddy.amvera.io/cabinet
 
 Prod health:
-https://froddy-lead-qa-froddy.amvera.io/health
+https://froddy-lead-qa-clean-froddy.amvera.io/health
 
 GitHub:
 https://github.com/Bear2020code/froddy-lead-qa
@@ -110,7 +110,7 @@ d_010 = block
 ## Key demo flow
 
 1. Open:
-   https://froddy-lead-qa-froddy.amvera.io/cabinet?v=14
+   https://froddy-lead-qa-clean-froddy.amvera.io/cabinet?v=14
 
 2. Click:
    Clear journal

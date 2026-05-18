@@ -2,7 +2,7 @@
 
 ## Demo URL
 
-https://froddy-lead-qa-froddy.amvera.io/cabinet
+https://froddy-lead-qa-clean-froddy.amvera.io/cabinet
 
 ## Pre-demo checks
 
@@ -21,7 +21,7 @@ Smoke test passed
 ## Pre-demo reset
 
 1. Open:
-   https://froddy-lead-qa-froddy.amvera.io/cabinet?v=14
+   https://froddy-lead-qa-clean-froddy.amvera.io/cabinet?v=14
 
 2. Click:
    Clear journal
